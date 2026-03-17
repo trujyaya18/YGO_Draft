@@ -1,54 +1,1070 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>YGO Draft</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YGO Draft Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-body{font-family:Arial;background:#111;color:white;text-align:center}
-.card{display:inline-block;margin:10px}
-img{width:200px}
+/* ── Reset & Variables ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:     #c9a84c;
+  --gold-lt:  #e8c96a;
+  --gold-dk:  #8a6a1e;
+  --bg:       #0a0a0f;
+  --bg2:      #111118;
+  --bg3:      #18181f;
+  --panel:    #1c1c26;
+  --border:   #2a2a3a;
+  --text:     #d8d4c8;
+  --text-dim: #7a7468;
+  --secret:   #b44fff;
+  --ultra:    #ffd700;
+  --super:    #c0c0ff;
+  --rare:     #88ccff;
+  --common:   #aaaaaa;
+  --danger:   #e05555;
+  --success:  #55b88a;
+  --radius:   6px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--gold-dk); border-radius: 3px; }
+
+/* ── Background texture ────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(201,168,76,.03) 40px,
+      rgba(201,168,76,.03) 41px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(201,168,76,.03) 40px,
+      rgba(201,168,76,.03) 41px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+header {
+  position: relative;
+  text-align: center;
+  padding: 2.5rem 1rem 1.8rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(201,168,76,.08) 0%, transparent 100%);
+}
+
+header h1 {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  color: var(--gold);
+  letter-spacing: .06em;
+  text-shadow: 0 0 30px rgba(201,168,76,.4);
+}
+
+header p {
+  color: var(--text-dim);
+  font-size: .95rem;
+  margin-top: .4rem;
+  letter-spacing: .04em;
+}
+
+/* ── Layout ────────────────────────────────────────────────── */
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Section cards ─────────────────────────────────────────── */
+.section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .9rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.025);
+}
+
+.section-header h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.badge {
+  margin-left: auto;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--gold);
+  background: rgba(201,168,76,.12);
+  border: 1px solid rgba(201,168,76,.25);
+  border-radius: 999px;
+  padding: .15rem .65rem;
+}
+
+/* ── Setup Panel ───────────────────────────────────────────── */
+.setup-body {
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.set-rows {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .6rem .8rem;
+  animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } }
+
+.set-row select,
+.set-row input[type="number"] {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: .95rem;
+  padding: .4rem .7rem;
+  outline: none;
+  transition: border-color .15s;
+}
+
+.set-row select:focus,
+.set-row input:focus { border-color: var(--gold); }
+
+.set-row select { flex: 1; min-width: 0; }
+.set-row input[type="number"] { width: 5.5rem; text-align: center; }
+
+.set-row label {
+  font-size: .8rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  letter-spacing: .04em;
+}
+
+.btn-icon {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  transition: all .15s;
+}
+
+.btn-icon:hover { border-color: var(--danger); color: var(--danger); }
+
+.setup-actions {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+button {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: none;
+  padding: .55rem 1.2rem;
+  letter-spacing: .05em;
+  transition: all .15s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold-dk), var(--gold));
+  color: #0a0a0f;
+  border: 1px solid var(--gold);
+}
+.btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold-dk);
+}
+.btn-outline:hover { border-color: var(--gold); background: rgba(201,168,76,.08); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(224,85,85,.4);
+}
+.btn-danger:hover { background: rgba(224,85,85,.1); }
+
+/* ── Draft area ────────────────────────────────────────────── */
+.draft-body {
+  padding: 1.2rem;
+}
+
+.draft-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.draft-stat {
+  display: flex;
+  align-items: baseline;
+  gap: .3rem;
+}
+
+.draft-stat .val {
+  font-family: 'Cinzel', serif;
+  font-size: 1.4rem;
+  color: var(--gold);
+}
+
+.draft-stat .lbl {
+  font-size: .8rem;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+}
+
+.pack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: .75rem;
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+  cursor: default;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+
+.card-img-wrap {
+  aspect-ratio: 421/614;
+  overflow: hidden;
+  background: var(--bg2);
+  position: relative;
+}
+
+.card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity .2s;
+}
+
+.card-img-wrap .img-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: .75rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: .5rem;
+}
+
+.card-info {
+  padding: .45rem .5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.card-name {
+  font-size: .78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.card-rarity {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.r-secret  { color: var(--secret); }
+.r-ultra   { color: var(--ultra); }
+.r-super   { color: var(--super); }
+.r-rare    { color: var(--rare); }
+.r-common  { color: var(--common); }
+
+.card-btn {
+  width: 100%;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: rgba(201,168,76,.1);
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--gold);
+  padding: .45rem;
+  font-size: .8rem;
+  letter-spacing: .05em;
+}
+.card-btn:hover { background: rgba(201,168,76,.2); }
+
+/* rarity glow border */
+.card[data-rarity="Secret Rare"]  { border-color: rgba(180,79,255,.5); box-shadow: 0 0 10px rgba(180,79,255,.15); }
+.card[data-rarity="Ultra Rare"]   { border-color: rgba(255,215,0,.4);  box-shadow: 0 0 10px rgba(255,215,0,.1); }
+.card[data-rarity="Super Rare"]   { border-color: rgba(192,192,255,.3); }
+
+/* ── Two-column layout for draft + deckbuilder ─────────────── */
+.main-cols {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) { .main-cols { grid-template-columns: 1fr; } }
+
+/* ── Pool / Deck tabs ──────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: .75rem;
+  color: var(--text-dim);
+  font-size: .9rem;
+  letter-spacing: .05em;
+  transition: all .15s;
+}
+
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+  background: rgba(201,168,76,.05);
+}
+
+.tab-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.03); }
+
+.tab-panel { display: none; padding: 1rem; }
+.tab-panel.active { display: block; }
+
+/* ── Pool list ─────────────────────────────────────────────── */
+.pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: .25rem;
+}
+
+.pool-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .45rem .6rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color .15s;
+}
+
+.pool-item:hover { border-color: var(--gold-dk); }
+
+.pool-item img {
+  width: 34px;
+  height: auto;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.pool-item-info { flex: 1; min-width: 0; }
+
+.pool-item-name {
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pool-item .card-rarity { font-size: .68rem; }
+
+.pool-item button {
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  flex-shrink: 0;
+}
+
+/* ── Deck list ─────────────────────────────────────────────── */
+.deck-section-label {
+  font-family: 'Cinzel', serif;
+  font-size: .75rem;
+  color: var(--text-dim);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .4rem 0 .3rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .4rem;
+}
+
+.deck-list {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: .8rem;
+}
+
+.deck-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .5rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.deck-item-qty {
+  font-family: 'Cinzel', serif;
+  font-size: .75rem;
+  color: var(--gold);
+  width: 1.5rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.deck-item-name {
+  flex: 1;
+  font-size: .8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deck-item .card-rarity { font-size: .65rem; }
+
+.deck-item-actions { display: flex; gap: .25rem; flex-shrink: 0; }
+
+.btn-sm {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: .85rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+/* ── Deck stats ────────────────────────────────────────────── */
+.deck-stats {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding: .75rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: .75rem;
+}
+
+.deck-stat-pill {
+  font-size: .78rem;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.deck-stat-pill span { color: var(--gold); font-weight: 700; }
+
+/* ── Toast ─────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .7rem 1.1rem;
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: all .2s;
+  pointer-events: none;
+  max-width: 280px;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Empty states ──────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-dim);
+  font-size: .9rem;
+}
+
+/* ── Loading spinner ───────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(201,168,76,.3);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Hidden ────────────────────────────────────────────────── */
+.hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<h1>Yu‑Gi‑Oh Draft Test</h1>
-<div id="cards"></div>
+<header>
+  <h1>⚡ YGO Draft Simulator</h1>
+  <p>Authentic booster box simulation · Multi-set drafting · Full deck builder</p>
+</header>
+
+<div class="app">
+
+  <!-- ── Setup ──────────────────────────────────────────── -->
+  <div class="section" id="setupSection">
+    <div class="section-header">
+      <h2>Draft Setup</h2>
+      <span class="badge" id="totalPacksBadge">0 packs</span>
+    </div>
+    <div class="setup-body">
+      <div class="set-rows" id="setRows"></div>
+      <div class="setup-actions">
+        <button class="btn-outline" onclick="addSetRow()">+ Add Set</button>
+        <button class="btn-primary" id="startBtn" onclick="startDraft()">Start Draft</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Draft + Deck (shown after start) ───────────────── -->
+  <div class="main-cols hidden" id="draftArea">
+
+    <!-- Left: pack viewer -->
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+      <div class="section" id="packSection">
+        <div class="section-header">
+          <h2>Current Pack</h2>
+          <span class="badge" id="packProgress">—</span>
+        </div>
+        <div class="draft-body">
+          <div id="packContainer">
+            <div class="empty">No pack open yet.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pool -->
+      <div class="section">
+        <div class="section-header">
+          <h2>Card Pool</h2>
+          <span class="badge" id="poolCount">0 cards</span>
+        </div>
+        <div id="poolContainer">
+          <div class="empty">Your drafted cards will appear here.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: deck builder -->
+    <div class="section" style="position:sticky;top:1rem;">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('main')">Main Deck</button>
+        <button class="tab-btn" onclick="switchTab('side')">Side Deck</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-main">
+        <div class="deck-stats" id="deckStats">
+          <div class="deck-stat-pill">Main <span id="mainCount">0</span></div>
+          <div class="deck-stat-pill">Side <span id="sideCount">0</span></div>
+          <div class="deck-stat-pill">Pool <span id="poolCountStat">0</span></div>
+        </div>
+        <div id="mainDeckList" class="deck-list"></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn-ghost" style="font-size:.8rem;padding:.4rem .8rem;" onclick="exportDeck()">Export List</button>
+          <button class="btn-danger" style="font-size:.8rem;padding:.4rem .8rem;" onclick="clearDeck('main')">Clear</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-side">
+        <div id="sideDeckList" class="deck-list"></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;padding:.5rem 0 0;">
+          <button class="btn-danger" style="font-size:.8rem;padding:.4rem .8rem;" onclick="clearDeck('side')">Clear</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
 
 <script>
-async function loadPool(){
-  const res = await fetch('/cards.json');
-  const data = await res.json();
-  return data.cards;
+// ── State ────────────────────────────────────────────────────
+const state = {
+  availableSets: [],
+  totalPacks: 0,
+  remainingPacks: 0,
+  drafted: [],          // all picked cards
+  mainDeck: [],         // { name, rarity, qty }
+  sideDeck: [],
+  imageCache: {},       // name → url
+  currentPack: null,
+};
+
+// ── Boot ─────────────────────────────────────────────────────
+(async () => {
+  const res = await fetch('/api/sets');
+  state.availableSets = await res.json();
+  addSetRow();
+})();
+
+// ── Setup helpers ─────────────────────────────────────────────
+function setOptions() {
+  return state.availableSets
+    .map(s => `<option value="${s.id}">${s.id} — ${s.name}</option>`)
+    .join('');
 }
 
-async function getCardInfo(name){
-  const res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?name=${encodeURIComponent(name)}`);
-  const json = await res.json();
-  return json.data[0];
+function addSetRow() {
+  const row = document.createElement('div');
+  row.className = 'set-row';
+  row.innerHTML = `
+    <select>${setOptions()}</select>
+    <label>Packs</label>
+    <input type="number" value="24" min="1" max="200" step="1">
+    <button class="btn-icon" title="Remove" onclick="this.closest('.set-row').remove(); updateTotalBadge();">✕</button>
+  `;
+  row.querySelector('input').addEventListener('input', updateTotalBadge);
+  document.getElementById('setRows').appendChild(row);
+  updateTotalBadge();
 }
 
-async function render(){
-  const pool = await loadPool();
-  const container = document.getElementById("cards");
+function updateTotalBadge() {
+  const rows = [...document.querySelectorAll('.set-row')];
+  const total = rows.reduce((s, r) => s + (parseInt(r.querySelector('input').value) || 0), 0);
+  document.getElementById('totalPacksBadge').textContent = `${total} pack${total !== 1 ? 's' : ''}`;
+}
 
-  for(const card of pool){
-    const info = await getCardInfo(card.name);
+// ── Draft control ─────────────────────────────────────────────
+async function startDraft() {
+  const rows = [...document.querySelectorAll('.set-row')];
+  if (!rows.length) return toast('Add at least one set.', 'warn');
 
-    const div = document.createElement("div");
-    div.className = "card";
+  const configuration = rows.map(r => ({
+    set: r.querySelector('select').value,
+    packs: parseInt(r.querySelector('input').value) || 1,
+  }));
 
-    div.innerHTML = `
-      <h3>${info.name}</h3>
-      <img src="${info.card_images[0].image_url}">
-      <p>${card.rarity}</p>
-    `;
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Building box…';
 
-    container.appendChild(div);
+  try {
+    const res = await fetch('/api/startDraft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configuration }),
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    state.totalPacks    = data.totalPacks;
+    state.remainingPacks = data.totalPacks;
+    state.drafted       = [];
+    state.mainDeck      = [];
+    state.sideDeck      = [];
+
+    document.getElementById('draftArea').classList.remove('hidden');
+    document.getElementById('setupSection').querySelector('.section-header h2').textContent = 'Draft Setup ✓';
+    btn.textContent = 'Restart Draft';
+    btn.disabled = false;
+
+    renderPool();
+    renderDeck('main');
+    renderDeck('side');
+    updateDeckStats();
+    await nextPack();
+
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+    btn.textContent = 'Start Draft';
+    btn.disabled = false;
   }
 }
 
-render();
-</script>
+async function nextPack() {
+  const res = await fetch('/api/nextPack');
+  const data = await res.json();
 
+  if (data.done) {
+    document.getElementById('packContainer').innerHTML =
+      `<div class="empty" style="padding:3rem;">🎉 Draft complete! You have ${state.drafted.length} cards in your pool.</div>`;
+    document.getElementById('packProgress').textContent = 'Done';
+    return;
+  }
+
+  state.remainingPacks = data.remaining;
+  const opened = state.totalPacks - state.remainingPacks;
+  document.getElementById('packProgress').textContent =
+    `Pack ${opened} of ${state.totalPacks}`;
+
+  await renderPack(data.pack);
+}
+
+// ── Image fetching (cached) ───────────────────────────────────
+async function fetchImage(name) {
+  if (state.imageCache[name]) return state.imageCache[name];
+  try {
+    const res = await fetch(
+      `https://db.ygoprodeck.com/api/v7/cardinfo.php?name=${encodeURIComponent(name)}&num=1&offset=0`
+    );
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+    const url = data.data[0].card_images[0].image_url_small || data.data[0].card_images[0].image_url;
+    state.imageCache[name] = url;
+    return url;
+  } catch {
+    state.imageCache[name] = null;
+    return null;
+  }
+}
+
+// ── Rendering ─────────────────────────────────────────────────
+function rarityClass(r) {
+  if (!r) return '';
+  const m = { 'Secret Rare': 'r-secret', 'Ultra Rare': 'r-ultra', 'Super Rare': 'r-super', 'Rare': 'r-rare', 'Common': 'r-common' };
+  return m[r] || 'r-common';
+}
+
+async function renderPack(pack) {
+  const container = document.getElementById('packContainer');
+  container.innerHTML = '';
+
+  const grid = document.createElement('div');
+  grid.className = 'pack-grid';
+  container.appendChild(grid);
+
+  // Render shells immediately, fill images async
+  const cards = pack.map(card => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.dataset.rarity = card.rarity || '';
+    div.innerHTML = `
+      <div class="card-img-wrap">
+        <div class="img-placeholder"><span class="spinner"></span></div>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${card.name}</div>
+        <div class="card-rarity ${rarityClass(card.rarity)}">${card.rarity || ''}</div>
+      </div>
+      <button class="card-btn" onclick="">Pick</button>
+    `;
+    div.querySelector('.card-btn').addEventListener('click', () => pick(card));
+    grid.appendChild(div);
+    return { div, card };
+  });
+
+  // Load images in parallel
+  await Promise.all(cards.map(async ({ div, card }) => {
+    const url = await fetchImage(card.name);
+    const wrap = div.querySelector('.card-img-wrap');
+    if (url) {
+      wrap.innerHTML = `<img src="${url}" alt="${card.name}" loading="lazy">`;
+    } else {
+      wrap.innerHTML = `<div class="img-placeholder" style="font-size:.65rem;">${card.name}</div>`;
+    }
+  }));
+}
+
+async function pick(card) {
+  // Disable all pick buttons so user can't double-pick
+  document.querySelectorAll('.card-btn').forEach(b => b.disabled = true);
+
+  await fetch('/api/pick', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ card }),
+  });
+
+  state.drafted.push(card);
+  renderPool();
+  updateDeckStats();
+  toast(`Picked: ${card.name}`);
+  await nextPack();
+}
+
+async function renderPool() {
+  const container = document.getElementById('poolContainer');
+  const count = state.drafted.length;
+
+  document.getElementById('poolCount').textContent = `${count} card${count !== 1 ? 's' : ''}`;
+
+  if (!count) {
+    container.innerHTML = '<div class="empty">Your drafted cards will appear here.</div>';
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'pool-list';
+  list.style.padding = '1rem';
+
+  // Sort by rarity then name
+  const sorted = [...state.drafted].sort((a, b) => {
+    const order = ['Secret Rare','Ultra Rare','Super Rare','Rare','Common'];
+    return (order.indexOf(a.rarity) - order.indexOf(b.rarity)) || a.name.localeCompare(b.name);
+  });
+
+  container.innerHTML = '';
+
+  const items = sorted.map(card => {
+    const div = document.createElement('div');
+    div.className = 'pool-item';
+    div.innerHTML = `
+      <img src="" alt="${card.name}" style="opacity:.3;">
+      <div class="pool-item-info">
+        <div class="pool-item-name">${card.name}</div>
+        <div class="card-rarity ${rarityClass(card.rarity)}">${card.rarity || ''}</div>
+      </div>
+      <button class="btn-outline" style="font-size:.75rem;padding:.25rem .6rem;" onclick="">→ Main</button>
+      <button class="btn-ghost"   style="font-size:.75rem;padding:.25rem .6rem;" onclick="">Side</button>
+    `;
+    div.querySelectorAll('button')[0].addEventListener('click', () => addToDeck(card, 'main'));
+    div.querySelectorAll('button')[1].addEventListener('click', () => addToDeck(card, 'side'));
+    list.appendChild(div);
+    return { div, card };
+  });
+
+  container.appendChild(list);
+
+  // Load pool thumbnails async
+  items.forEach(async ({ div, card }) => {
+    const url = await fetchImage(card.name);
+    const img = div.querySelector('img');
+    if (url) { img.src = url; img.style.opacity = '1'; }
+    else { img.style.display = 'none'; }
+  });
+}
+
+function addToDeck(card, zone) {
+  const deck = zone === 'main' ? state.mainDeck : state.sideDeck;
+  const maxQty = zone === 'main' ? 3 : 15;
+  const existing = deck.find(e => e.name === card.name);
+
+  if (existing) {
+    if (existing.qty >= maxQty) return toast(`Max copies reached for ${card.name}`, 'warn');
+    existing.qty++;
+  } else {
+    deck.push({ name: card.name, rarity: card.rarity, qty: 1 });
+  }
+
+  renderDeck(zone);
+  updateDeckStats();
+  switchTab(zone);
+}
+
+function removeFromDeck(name, zone) {
+  const deck = zone === 'main' ? state.mainDeck : state.sideDeck;
+  const idx = deck.findIndex(e => e.name === name);
+  if (idx === -1) return;
+  if (deck[idx].qty > 1) { deck[idx].qty--; }
+  else { deck.splice(idx, 1); }
+  renderDeck(zone);
+  updateDeckStats();
+}
+
+function clearDeck(zone) {
+  if (zone === 'main') state.mainDeck = [];
+  else state.sideDeck = [];
+  renderDeck(zone);
+  updateDeckStats();
+}
+
+function renderDeck(zone) {
+  const deck = zone === 'main' ? state.mainDeck : state.sideDeck;
+  const listEl = document.getElementById(zone === 'main' ? 'mainDeckList' : 'sideDeckList');
+
+  if (!deck.length) {
+    listEl.innerHTML = '<div class="empty" style="padding:1.2rem;">Empty</div>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+
+  const sorted = [...deck].sort((a, b) => {
+    const order = ['Secret Rare','Ultra Rare','Super Rare','Rare','Common'];
+    return (order.indexOf(a.rarity) - order.indexOf(b.rarity)) || a.name.localeCompare(b.name);
+  });
+
+  sorted.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'deck-item';
+    div.innerHTML = `
+      <span class="deck-item-qty">×${entry.qty}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="deck-item-name">${entry.name}</div>
+        <div class="card-rarity ${rarityClass(entry.rarity)}">${entry.rarity || ''}</div>
+      </div>
+      <div class="deck-item-actions">
+        <button class="btn-ghost btn-sm" title="Add copy">+</button>
+        <button class="btn-danger btn-sm" title="Remove copy">−</button>
+      </div>
+    `;
+    div.querySelectorAll('button')[0].addEventListener('click', () => {
+      // find original card in pool
+      const card = state.drafted.find(c => c.name === entry.name) || entry;
+      addToDeck(card, zone);
+    });
+    div.querySelectorAll('button')[1].addEventListener('click', () => removeFromDeck(entry.name, zone));
+    listEl.appendChild(div);
+  });
+}
+
+function updateDeckStats() {
+  const mainTotal = state.mainDeck.reduce((s, e) => s + e.qty, 0);
+  const sideTotal = state.sideDeck.reduce((s, e) => s + e.qty, 0);
+  document.getElementById('mainCount').textContent = mainTotal;
+  document.getElementById('sideCount').textContent = sideTotal;
+  document.getElementById('poolCountStat').textContent = state.drafted.length;
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(zone) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && zone === 'main') || (i === 1 && zone === 'side'));
+  });
+  document.getElementById('tab-main').classList.toggle('active', zone === 'main');
+  document.getElementById('tab-side').classList.toggle('active', zone === 'side');
+}
+
+// ── Export ────────────────────────────────────────────────────
+function exportDeck() {
+  if (!state.mainDeck.length && !state.sideDeck.length) return toast('Deck is empty.', 'warn');
+
+  let text = '# Main Deck\n';
+  state.mainDeck.forEach(e => { text += `${e.qty}x ${e.name}\n`; });
+  if (state.sideDeck.length) {
+    text += '\n# Side Deck\n';
+    state.sideDeck.forEach(e => { text += `${e.qty}x ${e.name}\n`; });
+  }
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'draft-deck.txt';
+  a.click();
+  toast('Deck exported!');
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = type === 'warn' ? '#c9a84c' : type === 'error' ? '#e05555' : '#55b88a';
+  el.style.color       = type === 'warn' ? '#c9a84c' : type === 'error' ? '#e05555' : '#55b88a';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+</script>
 </body>
 </html>
