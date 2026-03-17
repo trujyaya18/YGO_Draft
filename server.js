@@ -1,4 +1,4 @@
-// YGO Draft Server — serves HTML + cards.json
+// YGO Draft Server
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const fs = require('fs');
@@ -6,11 +6,42 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 
-// Your existing index.html as base64 (I'll keep this short in the response)
-// You'll paste your full HTML here
-const GAME_HTML = `<!DOCTYPE html>...`; // Your full HTML goes here
+// Embedded cards.json as fallback (first few sets only)
+const FALLBACK_CARDS = {
+  "sets": [
+    {
+      "id": "LOB",
+      "name": "Legend of Blue Eyes White Dragon (LOB)",
+      "packSize": 9,
+      "slots": [{ "rarity": "Common", "count": 7 }, { "rarity": "Rare", "count": 1 }, { "rarity": "Foil", "count": 1 }],
+      "foilOdds": { "SR": 2, "UR": 1 },
+      "cards": [
+        {"name": "Blue-Eyes White Dragon", "rarity": "Ultra Rare"},
+        {"name": "Dark Magician", "rarity": "Ultra Rare"},
+        {"name": "Red-Eyes Black Dragon", "rarity": "Ultra Rare"},
+        {"name": "Tri-Horned Dragon", "rarity": "Secret Rare"}
+      ]
+    },
+    {
+      "id": "MRD",
+      "name": "Metal Raiders (MRD)",
+      "packSize": 9,
+      "slots": [{ "rarity": "Common", "count": 7 }, { "rarity": "Rare", "count": 1 }, { "rarity": "Foil", "count": 1 }],
+      "foilOdds": { "SR": 2, "UR": 1 },
+      "cards": [
+        {"name": "Gate Guardian", "rarity": "Secret Rare"},
+        {"name": "Summoned Skull", "rarity": "Ultra Rare"}
+      ]
+    }
+  ]
+};
+
+// Your full HTML (paste your existing HTML here)
+const GAME_HTML = `<!DOCTYPE html>...`; // <-- PASTE YOUR FULL HTML HERE
 
 const server = http.createServer((req, res) => {
+  console.log(`${req.method} ${req.url}`);
+  
   // Serve the main game page
   if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
     res.writeHead(200, {
@@ -24,12 +55,19 @@ const server = http.createServer((req, res) => {
   // Serve cards.json
   if (req.method === 'GET' && req.url === '/cards.json') {
     const filePath = path.join(__dirname, 'cards.json');
+    
     fs.readFile(filePath, 'utf8', (err, data) => {
       if (err) {
-        res.writeHead(404);
-        res.end('Cards data not found');
+        // If file not found, serve fallback data
+        console.log('cards.json not found, using fallback');
+        res.writeHead(200, { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        });
+        res.end(JSON.stringify(FALLBACK_CARDS));
         return;
       }
+      
       res.writeHead(200, { 
         'Content-Type': 'application/json',
         'Cache-Control': 'max-age=3600'
@@ -39,6 +77,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // 404 for everything else
   res.writeHead(404);
   res.end('Not found');
 });
@@ -186,4 +225,4 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => console.log('YGO Draft Server on port', PORT));
+server.listen(PORT, () => console.log('YGO Draft Server running on port', PORT));
